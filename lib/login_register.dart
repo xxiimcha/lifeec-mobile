@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'nurse_dashboard.dart';
 import 'messages_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginRegister extends StatefulWidget {
   const LoginRegister({super.key});
@@ -94,11 +95,10 @@ class LoginRegisterState extends State<LoginRegister>
     }
   }
 
-  // Sign In API call
 Future<void> signIn(String email, String password) async {
   try {
     final response = await http.post(
-      Uri.parse('http://localhost:5000/api/auth/signin'), // Backend login route
+      Uri.parse('http://localhost:5000/api/auth/signin'),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -112,28 +112,37 @@ Future<void> signIn(String email, String password) async {
       final data = jsonDecode(response.body);
 
       if (kDebugMode) {
-        print('Login successful: ${data}');
+        print('Login successful: $data');
         print('User Type: ${data['userType']}');
+        print('Login response data: $data'); // Log the full response
+        print('User Name: ${data['name']}');
       }
 
+      // Save user data to SharedPreferences with null checking
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', data['token'] ?? ''); // Set a default value if null
+      await prefs.setString('userType', data['userType'] ?? '');
+      await prefs.setString('email', email);
+      await prefs.setString('name', data['name'] ?? '');
 
       // Check user type and navigate accordingly
       if (data['userType'] == 'Family Member') {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const MessagesPage(userType: "Family Member")), // Redirect to FamilyChat for Family Member
+          MaterialPageRoute(
+            builder: (context) => const MessagesPage(userType: "Family Member"),
+          ),
         );
       } else {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const NurseDashboardApp()), // Redirect to NurseDashboard for other users
+          MaterialPageRoute(builder: (context) => const NurseDashboardApp()),
         );
       }
     } else {
       if (kDebugMode) {
         print('Login failed: ${response.body}');
       }
-      // Handle error case
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Login failed: ${response.body}'),
       ));
@@ -330,27 +339,6 @@ Future<void> signIn(String email, String password) async {
                             ),
                           ),
                         const SizedBox(height: 30),
-                        const Text(
-                          'Or sign in with',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 20),
-                        Center(
-                          child: ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(FontAwesomeIcons.google,
-                                color: Colors.redAccent),
-                            label: const Text('Google'),
-                            style: ElevatedButton.styleFrom(
-                              foregroundColor: Colors.blueAccent,
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
