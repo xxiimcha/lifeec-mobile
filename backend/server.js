@@ -9,6 +9,7 @@ const healthProgressRouter = require('./routes/healthProgress');
 const mealRouter = require("./routes/meal");
 const contactRoutes = require('./routes/contactRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 require('dotenv').config();
 
@@ -33,6 +34,7 @@ app.use('/api/health-progress', healthProgressRouter);
 app.use("/api/v1/meal", mealRouter);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
 
 // Start the server
 app.listen(PORT, () => {

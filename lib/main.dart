@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import 'resident_provider.dart';
 import 'login_register.dart'; // Import the LoginRegister screen
 
-void main() {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   runApp(
     ChangeNotifierProvider(
       create: (context) => ResidentProvider(),

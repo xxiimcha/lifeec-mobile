@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'resident_provider.dart';
 import 'resident.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ActivitiesPage extends StatefulWidget {
   final List<String> residentNames;
@@ -74,7 +75,9 @@ class ActivitiesPageState extends State<ActivitiesPage> {
         'status': 'Pending',
       };
 
-      final url = Uri.parse('http://localhost:5000/api/activities/add');
+      // Use the API URL from the .env file
+      final baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:5000/api';
+      final url = Uri.parse('$baseUrl/activities/add');
 
       try {
         final response = await http.post(

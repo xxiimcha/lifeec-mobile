@@ -4,9 +4,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FamilyChatPage extends StatefulWidget {
-  const FamilyChatPage({super.key});
+  final String id; // Accept the user ID
+  final String name; // Accept the user's name
+
+  const FamilyChatPage({Key? key, required this.id, required this.name}) : super(key: key);
 
   @override
   FamilyChatPageState createState() => FamilyChatPageState();
@@ -16,51 +21,75 @@ class FamilyChatPageState extends State<FamilyChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final List<Message> _messages = [];
   final ImagePicker _picker = ImagePicker();
-  final String apiUrl = 'http://localhost:5000/api/messages'; // Your API URL
+
+  late final String baseUrl;
+  late final Uri apiUrl;
 
   @override
   void initState() {
     super.initState();
+    baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:5000';
+    apiUrl = Uri.parse('$baseUrl/api/messages');
     _fetchMessages(); // Fetch existing messages on init
   }
 
   Future<void> _fetchMessages() async {
-    final response = await http.get(Uri.parse(apiUrl));
+    try {
+      final response = await http.get(apiUrl);
 
-    if (response.statusCode == 200) {
-      List jsonResponse = json.decode(response.body);
-      setState(() {
-        _messages.clear(); // Clear current messages
-        _messages.addAll(jsonResponse.map((msg) {
-          return Message(
-            content: msg['content'],
-            isAdmin: msg['isAdmin'],
-          );
-        }).toList());
-      });
-    } else {
-      throw Exception('Failed to load messages');
+      if (response.statusCode == 200) {
+        List jsonResponse = json.decode(response.body);
+        setState(() {
+          _messages.clear(); // Clear current messages
+          _messages.addAll(jsonResponse.map((msg) {
+            return Message(
+              content: msg['content'],
+              isAdmin: msg['isAdmin'],
+            );
+          }).toList());
+        });
+      } else {
+        throw Exception('Failed to load messages');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
   Future<void> _sendMessage() async {
     if (_messageController.text.isNotEmpty) {
-      // Send message to the backend
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'content': _messageController.text,
-          'isAdmin': true,
-        }),
-      );
+      try {
+        final messageData = {
+          'senderId': widget.id, // Assuming senderId is the user ID from the widget
+          'receiverId': widget.id, // Setting receiverId as the widget's id
+          'text': _messageController.text,
+          'time': DateTime.now().toIso8601String(),
+          'isRead': false, // Set initial read status as false
+        };
 
-      if (response.statusCode == 201) {
-        // On successful response, clear and fetch messages again
-        _messageController.clear();
-        _fetchMessages();
-      } else {
-        throw Exception('Failed to send message');
+        final response = await http.post(
+          apiUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(messageData),
+        );
+
+        if (response.statusCode == 201) {
+          // Successfully sent; update UI
+          setState(() {
+            _messages.add(
+              Message(content: _messageController.text, isAdmin: true),
+            );
+          });
+          _messageController.clear(); // Clear input
+        } else {
+          throw Exception('Failed to send message');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }
@@ -68,7 +97,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      // You might want to handle image upload to the backend here
+      // Handle image upload to the backend here if needed
       setState(() {
         _messages
             .add(Message(content: 'Image: ${pickedFile.path}', isAdmin: true));
@@ -148,7 +177,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
           child: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leadingWidth: 100, // Adjust the width to fit both icons
+            leadingWidth: 100,
             leading: Row(
               children: [
                 IconButton(
@@ -157,9 +186,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
                     Navigator.of(context).pop();
                   },
                 ),
-                const SizedBox(
-                    width:
-                        8), // Add some spacing between the back icon and avatar
+                const SizedBox(width: 8),
                 const CircleAvatar(
                   backgroundColor: Colors.white,
                   radius: 20,
@@ -168,7 +195,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
               ],
             ),
             title: Text(
-              'Family Member',
+              widget.name,
               style: GoogleFonts.playfairDisplay(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
