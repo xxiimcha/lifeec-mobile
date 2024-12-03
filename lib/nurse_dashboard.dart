@@ -9,8 +9,6 @@ import 'resident_provider.dart';
 import 'login_register.dart';
 import 'messages_page.dart';
 import 'emergency_alert.dart';
-import 'profile_settings.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class NurseDashboardApp extends StatelessWidget {
   const NurseDashboardApp({super.key});
@@ -46,22 +44,6 @@ class NurseDashboard extends StatefulWidget {
 }
 
 class NurseDashboardState extends State<NurseDashboard> {
-  String userName = 'Nurse Dashboard';
-  String userEmail = 'nurse@example.com';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-  Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('name') ?? 'Nurse Dashboard';
-      userEmail = prefs.getString('email') ?? 'nurse@example.com';
-    });
-  }
-  
   void _navigateToPage(BuildContext context, Widget page) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -163,7 +145,7 @@ class NurseDashboardState extends State<NurseDashboard> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    userName,
+                    'Nurse Dashboard',
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.white,
                       fontSize: 24,
@@ -172,7 +154,7 @@ class NurseDashboardState extends State<NurseDashboard> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    userEmail,
+                    'nurse@example.com',
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.white,
                       fontSize: 14,
@@ -193,13 +175,7 @@ class NurseDashboardState extends State<NurseDashboard> {
                     residents: [],
                   ));
             }),
-            _buildDrawerItem(Icons.settings, 'Settings', onTap: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
-                (Route<dynamic> route) => false,
-              );
-            }),
+            _buildDrawerItem(Icons.settings, 'Settings'),
             _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
               Navigator.pushAndRemoveUntil(
                 context,
