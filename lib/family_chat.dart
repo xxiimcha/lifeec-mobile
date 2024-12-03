@@ -5,11 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FamilyChatPage extends StatefulWidget {
-  final String id; // Accept the user ID
-  final String name; // Accept the user's name
+  final String id; // Receiver's ID
+  final String name; // Receiver's name
 
   const FamilyChatPage({Key? key, required this.id, required this.name}) : super(key: key);
 
@@ -24,13 +23,22 @@ class FamilyChatPageState extends State<FamilyChatPage> {
 
   late final String baseUrl;
   late final Uri apiUrl;
+  String? _senderId; // To store the logged-in user's ID
 
   @override
   void initState() {
     super.initState();
-    baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:5000';
+    baseUrl = 'http://localhost:5000';
     apiUrl = Uri.parse('$baseUrl/api/messages');
+    _loadSenderId();
     _fetchMessages(); // Fetch existing messages on init
+  }
+
+  Future<void> _loadSenderId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _senderId = prefs.getString('userId'); // Retrieve the logged-in user's ID
+    });
   }
 
   Future<void> _fetchMessages() async {
@@ -43,8 +51,8 @@ class FamilyChatPageState extends State<FamilyChatPage> {
           _messages.clear(); // Clear current messages
           _messages.addAll(jsonResponse.map((msg) {
             return Message(
-              content: msg['content'],
-              isAdmin: msg['isAdmin'],
+              content: msg['text'],
+              isAdmin: msg['senderId'] == _senderId, // Check if the message is sent by the logged-in user
             );
           }).toList());
         });
@@ -59,48 +67,65 @@ class FamilyChatPageState extends State<FamilyChatPage> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.isNotEmpty) {
-      try {
-        final messageData = {
-          'senderId': widget.id, // Assuming senderId is the user ID from the widget
-          'receiverId': widget.id, // Setting receiverId as the widget's id
-          'text': _messageController.text,
-          'time': DateTime.now().toIso8601String(),
-          'isRead': false, // Set initial read status as false
-        };
+  if (_messageController.text.isNotEmpty && _senderId != null) {
+    try {
+      final messageData = {
+        'senderId': _senderId, // Logged-in user's ID
+        'receiverId': widget.id, // Receiver's ID passed from MessagesPage
+        'text': _messageController.text,
+        'time': DateTime.now().toIso8601String(),
+        'isRead': false, // Initial read status as false
+      };
 
-        final response = await http.post(
-          apiUrl,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(messageData),
-        );
+      // Log the message data being sent
+      print('Sending message: $messageData');
 
-        if (response.statusCode == 201) {
-          // Successfully sent; update UI
-          setState(() {
-            _messages.add(
-              Message(content: _messageController.text, isAdmin: true),
-            );
-          });
-          _messageController.clear(); // Clear input
-        } else {
-          throw Exception('Failed to send message');
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+      final response = await http.post(
+        apiUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(messageData),
+      );
+
+      // Log the server's response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 201) {
+        // Successfully sent; update UI
+        final newMessage = Message(
+          content: _messageController.text,
+          isAdmin: true,
         );
+        setState(() {
+          _messages.add(newMessage);
+        });
+        _messageController.clear(); // Clear input field
+        print('Message sent successfully!');
+      } else {
+        throw Exception('Failed to send message: ${response.body}');
       }
+    } catch (e) {
+      // Log the error
+      print('Error sending message: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
+  } else {
+    // Log if senderId is unavailable or message is empty
+    print('Sender ID is not available or message is empty');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sender ID is not available')),
+    );
   }
+}
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       // Handle image upload to the backend here if needed
       setState(() {
-        _messages
-            .add(Message(content: 'Image: ${pickedFile.path}', isAdmin: true));
+        _messages.add(Message(content: 'Image: ${pickedFile.path}', isAdmin: true));
       });
     }
   }

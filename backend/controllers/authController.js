@@ -31,7 +31,6 @@ exports.signup = async (req, res) => {
   }
 };
 
-// Sign In
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
 
@@ -41,15 +40,25 @@ exports.signin = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      console.log('User not found');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user._id, userType: user.userType }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    
-    console.log('User data:', user); // Log the user data from the database
-    res.json({ token, userType: user.userType, name: user.name, id: user._id});
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      console.log('Password mismatch');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
+    const token = jwt.sign(
+      { userId: user._id, userType: user.userType },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    console.log('User successfully signed in:', user);
+    res.json({ token, userType: user.userType, name: user.name, id: user._id });
   } catch (error) {
     console.error('Sign in error:', error);
     res.status(500).json({ error: error.message });

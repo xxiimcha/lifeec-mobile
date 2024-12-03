@@ -120,6 +120,7 @@ Future<void> signIn(String email, String password) async {
 
       // Save user data to SharedPreferences with null checking
       SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', data['id']); // Save the ObjectId
       await prefs.setString('token', data['token'] ?? ''); // Set a default value if null
       await prefs.setString('userType', data['userType'] ?? '');
       await prefs.setString('email', email);

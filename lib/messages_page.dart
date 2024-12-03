@@ -183,9 +183,16 @@ class MessagesPageState extends State<MessagesPage> {
       ),
       title: Text(name, style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.w800)),
       onTap: () {
+        // Print the selected user's ID to the terminal
+        print('Selected user ID: $id');
+        
+        // Navigate to FamilyChatPage with the selected user's ID and name
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => FamilyChatPage(id: id, name: name), // Pass both id and name
+            builder: (context) => FamilyChatPage(
+              id: id, // Pass the selected user's ID as receiverId
+              name: name, // Pass the selected user's name
+            ),
           ),
         );
       },
