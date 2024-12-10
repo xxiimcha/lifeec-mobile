@@ -10,34 +10,25 @@ import 'nurse_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'messages_page.dart';
 
-class LoginRegister extends StatefulWidget {
-  const LoginRegister({super.key});
+class Login extends StatefulWidget {
+  const Login({super.key});
 
   @override
-  LoginRegisterState createState() => LoginRegisterState();
+  LoginState createState() => LoginState();
 }
 
-class LoginRegisterState extends State<LoginRegister>
-    with SingleTickerProviderStateMixin {
-  bool isSignIn = true;
+class LoginState extends State<Login> with SingleTickerProviderStateMixin {
   bool isLoading = false;
   bool isPasswordVisible = false;
 
   final _signInFormKey = GlobalKey<FormState>();
-  final _signUpFormKey = GlobalKey<FormState>();
 
   final TextEditingController _signInEmailController = TextEditingController();
-  final TextEditingController _signInPasswordController =
-      TextEditingController();
-  final TextEditingController _signUpNameController = TextEditingController();
-  final TextEditingController _signUpEmailController = TextEditingController();
-  final TextEditingController _signUpPasswordController =
-      TextEditingController();
+  final TextEditingController _signInPasswordController = TextEditingController();
 
   late AnimationController _animationController;
   late Animation<double> _buttonAnimation;
 
-  // Load API URL from .env
   final String baseUrl = 'http://localhost:5000/api/auth';
 
   @override
@@ -63,138 +54,81 @@ class LoginRegisterState extends State<LoginRegister>
     _animationController.dispose();
     _signInEmailController.dispose();
     _signInPasswordController.dispose();
-    _signUpNameController.dispose();
-    _signUpEmailController.dispose();
-    _signUpPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> handleAuthentication() async {
-    if (isSignIn) {
-      if (_signInFormKey.currentState!.validate()) {
-        setState(() {
-          isLoading = true;
-        });
-        await signIn(
-            _signInEmailController.text, _signInPasswordController.text);
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } else {
-      if (_signUpFormKey.currentState!.validate()) {
-        setState(() {
-          isLoading = true;
-        });
-        await signUp(_signUpNameController.text, _signUpEmailController.text,
-            _signUpPasswordController.text);
-        setState(() {
-          isLoading = false;
-        });
-      }
+    if (_signInFormKey.currentState!.validate()) {
+      setState(() {
+        isLoading = true;
+      });
+      await signIn(_signInEmailController.text, _signInPasswordController.text);
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
-Future<void> signIn(String email, String password) async {
-  try {
-    final response = await http.post(
-      Uri.parse('http://localhost:5000/api/auth/signin'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-      if (kDebugMode) {
-        print('Login successful: $data');
-        print('User Type: ${data['userType']}');
-        print('Login response data: $data'); // Log the full response
-        print('User Name: ${data['name']}');
-      }
-
-      // Save user data to SharedPreferences with null checking
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userId', data['id']); // Save the ObjectId
-      await prefs.setString('token', data['token'] ?? ''); // Set a default value if null
-      await prefs.setString('userType', data['userType'] ?? '');
-      await prefs.setString('email', email);
-      await prefs.setString('name', data['name'] ?? '');
-
-      // Check user type and navigate accordingly
-      if (data['userType'] == 'Family Member' || data['userType'] == 'Nutritionist') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NurseDashboardApp(userType: data['userType']), // Dynamically pass the userType
-          ),
-        );
-      } else if (data['userType'] == 'Nurse') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const NurseDashboardApp(userType: "Nurse"),
-          ),
-        );
-      } else {
-        // Handle other userTypes or show an error
-        print('Unknown userType: ${data['userType']}');
-      }
-    } else {
-      if (kDebugMode) {
-        print('Login failed: ${response.body}');
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Login failed: ${response.body}'),
-      ));
-    }
-  } catch (error) {
-    if (kDebugMode) {
-      print('Error during login: $error');
-    }
-  }
-}
-
-  // Sign Up API call
-  Future<void> signUp(String name, String email, String password) async {
+  Future<void> signIn(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/signup'), // Backend register route
+        Uri.parse('$baseUrl/signin'),
         headers: {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'name': name,
           'email': email,
           'password': password,
         }),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         if (kDebugMode) {
-          print('Registration successful: ${data['token']}');
+          print('Login successful: $data');
+          print('User Type: ${data['userType']}');
+          print('Login response data: $data');
+          print('User Name: ${data['name']}');
         }
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const NurseDashboardApp(userType: "Nurse",)),
-        );
+
+        // Save user data to SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', data['id']);
+        await prefs.setString('token', data['token'] ?? '');
+        await prefs.setString('userType', data['userType'] ?? '');
+        await prefs.setString('email', email);
+        await prefs.setString('name', data['name'] ?? '');
+
+        // Check user type and navigate accordingly
+        if (data['userType'] == 'Family Member' || data['userType'] == 'Nutritionist') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NurseDashboardApp(userType: data['userType']),
+            ),
+          );
+        } else if (data['userType'] == 'Nurse') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NurseDashboardApp(userType: "Nurse"),
+            ),
+          );
+        } else {
+          print('Unknown userType: ${data['userType']}');
+        }
       } else {
         if (kDebugMode) {
-          print('Registration failed: ${response.body}');
+          print('Login failed: ${response.body}');
         }
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Registration failed: ${response.body}'),
+          content: Text('Login failed: ${response.body}'),
         ));
       }
     } catch (error) {
       if (kDebugMode) {
-        print('Error during registration: $error');
+        print('Error during login: $error');
       }
     }
   }
@@ -229,50 +163,6 @@ Future<void> signIn(String email, String password) async {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                child: ToggleButtons(
-                  borderColor: Colors.white,
-                  fillColor: Colors.white,
-                  borderWidth: 2,
-                  selectedBorderColor: Colors.white,
-                  selectedColor: Colors.blueAccent,
-                  borderRadius: BorderRadius.circular(30),
-                  onPressed: (int index) {
-                    setState(() {
-                      isSignIn = index == 1;
-                    });
-                  },
-                  isSelected: [!isSignIn, isSignIn],
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Sign Up',
-                        style: TextStyle(
-                          color: isSignIn ? Colors.white : Colors.blueAccent,
-                          fontSize: 18,
-                          fontWeight:
-                              isSignIn ? FontWeight.normal : FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Sign In',
-                        style: TextStyle(
-                          color: isSignIn ? Colors.blueAccent : Colors.white,
-                          fontSize: 18,
-                          fontWeight:
-                              isSignIn ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 50),
               Expanded(
                 child: Container(
@@ -288,7 +178,7 @@ Future<void> signIn(String email, String password) async {
                     child: ListView(
                       children: [
                         const SizedBox(height: 20),
-                        isSignIn ? buildSignInForm() : buildSignUpForm(),
+                        buildSignInForm(),
                         const SizedBox(height: 20),
                         FadeTransition(
                           opacity: _buttonAnimation,
@@ -319,9 +209,9 @@ Future<void> signIn(String email, String password) async {
                                 child: isLoading
                                     ? const CircularProgressIndicator(
                                         color: Colors.white)
-                                    : Text(
-                                        isSignIn ? 'Sign In' : 'Sign Up',
-                                        style: const TextStyle(
+                                    : const Text(
+                                        'Sign In',
+                                        style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
                                         ),
@@ -331,18 +221,17 @@ Future<void> signIn(String email, String password) async {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        if (isSignIn)
-                          GestureDetector(
-                            onTap: () {},
-                            child: const Text(
-                              'Forgot Password?',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 14,
-                              ),
+                        GestureDetector(
+                          onTap: () {},
+                          child: const Text(
+                            'Forgot Password?',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 14,
                             ),
                           ),
+                        ),
                       ],
                     ),
                   ),
@@ -363,21 +252,6 @@ Future<void> signIn(String email, String password) async {
           buildEmailField(_signInEmailController),
           const SizedBox(height: 15),
           buildPasswordField(_signInPasswordController),
-        ],
-      ),
-    );
-  }
-
-  Form buildSignUpForm() {
-    return Form(
-      key: _signUpFormKey,
-      child: Column(
-        children: [
-          buildTextField('Name', _signUpNameController, false),
-          const SizedBox(height: 15),
-          buildEmailField(_signUpEmailController),
-          const SizedBox(height: 15),
-          buildPasswordField(_signUpPasswordController),
         ],
       ),
     );
@@ -422,25 +296,6 @@ Future<void> signIn(String email, String password) async {
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Please enter your password';
-        }
-        return null;
-      },
-    );
-  }
-
-  TextFormField buildTextField(
-      String label, TextEditingController controller, bool obscureText) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: const Icon(Icons.person),
-        border: const OutlineInputBorder(),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your $label';
         }
         return null;
       },

@@ -193,7 +193,7 @@ class NurseDashboardState extends State<NurseDashboard> {
               _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginRegister()),
+                  MaterialPageRoute(builder: (context) => const Login()),
                   (Route<dynamic> route) => false,
                 );
               }),
@@ -211,7 +211,7 @@ class NurseDashboardState extends State<NurseDashboard> {
               _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginRegister()),
+                  MaterialPageRoute(builder: (context) => const Login()),
                   (Route<dynamic> route) => false,
                 );
               }),

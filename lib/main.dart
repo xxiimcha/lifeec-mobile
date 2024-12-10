@@ -34,7 +34,7 @@ class NurseDashboardApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const LoginRegister(), // Navigate to LoginRegister screen
+      home: const Login(), // Navigate to LoginRegister screen
     );
   }
 }
