@@ -9,6 +9,7 @@ import 'resident_provider.dart';
 import 'login_register.dart';
 import 'messages_page.dart';
 import 'emergency_alert.dart';
+import 'settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NurseDashboardApp extends StatelessWidget {
@@ -184,7 +185,11 @@ class NurseDashboardState extends State<NurseDashboard> {
                 _navigateToPage(
                     context, const MessagesPage(userType: 'Nurse'));
               }),
-              _buildDrawerItem(Icons.settings, 'Settings'),
+              _buildDrawerItem(Icons.settings, 'Settings', onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              }),
               _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -198,7 +203,11 @@ class NurseDashboardState extends State<NurseDashboard> {
                 _navigateToPage(
                     context, MessagesPage(userType: widget.userType));
               }),
-              _buildDrawerItem(Icons.settings, 'Settings'),
+              _buildDrawerItem(Icons.settings, 'Settings', onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const SettingsPage()),
+                );
+              }),
               _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,

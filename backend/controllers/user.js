@@ -85,9 +85,36 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Update profile function
+const updateProfile = async (req, res) => {
+  const { id } = req.params; // Assume the user ID is passed in the URL
+  const { name, email, password } = req.body; // Fields to update
+
+  try {
+    // Find user by ID
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update only the provided fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (password) user.password = password; // Assume password hashing is handled elsewhere
+
+    await user.save();
+
+    res.status(200).json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    console.error('Failed to update profile:', error);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+};
+
 module.exports = {
   getUsers,
   addUser,
   editUser,
   deleteUser,
+  updateProfile,
 };
