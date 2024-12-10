@@ -1,4 +1,4 @@
-const BasicInformation = require('../models/Basicinformation');
+const BasicInformation = require("../models/BasicInformation");
 
 const uploadInfo = async (req, res) => {
     try {
