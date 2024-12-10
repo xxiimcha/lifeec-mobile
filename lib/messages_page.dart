@@ -40,7 +40,7 @@ class MessagesPageState extends State<MessagesPage> {
     if (userType == null) return; // If userType is null, exit early
 
     try {
-      final response = await http.get(Uri.parse('https://lifeec-mobile.onrender.com/api/users?userType=$userType'));
+      final response = await http.get(Uri.parse('http://localhost:5000/api/users?userType=$userType'));
 
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');

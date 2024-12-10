@@ -63,7 +63,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
 
     try {
       // Construct URL with query parameters
-      final url = Uri.parse('https://lifeec-mobile.onrender.com/api/messages/between-users?senderId=$_senderId&receiverId=${widget.id}');
+      final url = Uri.parse('http://localhost:5000/api/messages/between-users?senderId=$_senderId&receiverId=${widget.id}');
       
       final response = await http.get(url);
 

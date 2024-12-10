@@ -194,38 +194,57 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
                 ),
               ),
               const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: _selectedResident,
-                hint: const Text('Select Resident'),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                items: residents.map((resident) {
-                  return DropdownMenuItem<String>(
-                    value: resident.name,
-                    child: Text(
-                      resident.name,
-                      style: GoogleFonts.lato(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedResident = newValue;
-                  });
-                },
-                dropdownColor: Colors.white,
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.blueAccent),
-                iconSize: 30,
+             DropdownButtonFormField<String>(
+  value: _selectedResident,
+  hint: const Text('Select Resident'),
+  decoration: InputDecoration(
+    filled: true,
+    fillColor: Colors.white,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10.0),
+    ),
+  ),
+  items: residents.isNotEmpty
+      ? residents.map((resident) {
+          return DropdownMenuItem<String>(
+            value: resident.name,
+            child: Text(
+              resident.name,
+              style: GoogleFonts.lato(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
+            ),
+          );
+        }).toList()
+      : [
+          DropdownMenuItem<String>(
+            value: null,
+            child: Text(
+              'No residents available',
+              style: GoogleFonts.lato(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+  onChanged: residents.isNotEmpty
+      ? (String? newValue) {
+          setState(() {
+            _selectedResident = newValue;
+          });
+        }
+      : null,
+  dropdownColor: Colors.white,
+  icon: residents.isNotEmpty
+      ? const Icon(Icons.arrow_drop_down, color: Colors.blueAccent)
+      : null,
+  iconSize: 30,
+),
+
               const SizedBox(height: 40),
               GestureDetector(
                 onTapDown: _onTapDown,
