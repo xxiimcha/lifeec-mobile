@@ -9,9 +9,12 @@ import 'resident_provider.dart';
 import 'login_register.dart';
 import 'messages_page.dart';
 import 'emergency_alert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NurseDashboardApp extends StatelessWidget {
-  const NurseDashboardApp({super.key});
+  final String userType;
+
+  const NurseDashboardApp({super.key, required this.userType});
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +34,15 @@ class NurseDashboardApp extends StatelessWidget {
               ),
         ),
       ),
-      home: const NurseDashboard(),
+      home: NurseDashboard(userType: userType), // Pass userType here
     );
   }
 }
 
 class NurseDashboard extends StatefulWidget {
-  const NurseDashboard({super.key});
+  final String userType; // Accept `userType` as a parameter
+
+  const NurseDashboard({super.key, required this.userType});
 
   @override
   NurseDashboardState createState() => NurseDashboardState();
@@ -122,6 +127,7 @@ class NurseDashboardState extends State<NurseDashboard> {
           ),
         ),
       ),
+      
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -145,7 +151,7 @@ class NurseDashboardState extends State<NurseDashboard> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Nurse Dashboard',
+                    '${widget.userType} Dashboard', // Dynamic dashboard title
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.white,
                       fontSize: 24,
@@ -154,7 +160,7 @@ class NurseDashboardState extends State<NurseDashboard> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    'nurse@example.com',
+                    'user@example.com',
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.white,
                       fontSize: 14,
@@ -164,25 +170,48 @@ class NurseDashboardState extends State<NurseDashboard> {
                 ],
               ),
             ),
-            _buildDrawerItem(Icons.message, 'Messages', onTap: () {
-              _navigateToPage(context, const MessagesPage(userType: "Nurse",));
-            }),
-            _buildDrawerItem(FontAwesomeIcons.userGroup, 'Residents List',
-                onTap: () {
-              _navigateToPage(
+            // Conditionally display menu items based on userType
+            if (widget.userType == 'Nurse') ...[
+              _buildDrawerItem(FontAwesomeIcons.userGroup, 'Residents List',
+                  onTap: () {
+                _navigateToPage(
+                    context,
+                    const ResidentsListPage(
+                      residents: [],
+                    ));
+              }),
+              _buildDrawerItem(Icons.message, 'Messages', onTap: () {
+                _navigateToPage(
+                    context, const MessagesPage(userType: 'Nurse'));
+              }),
+              _buildDrawerItem(Icons.settings, 'Settings'),
+              _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
+                Navigator.pushAndRemoveUntil(
                   context,
-                  const ResidentsListPage(
-                    residents: [],
-                  ));
-            }),
-            _buildDrawerItem(Icons.settings, 'Settings'),
-            _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginRegister()),
-                (Route<dynamic> route) => false,
-              );
-            }),
+                  MaterialPageRoute(builder: (context) => const LoginRegister()),
+                  (Route<dynamic> route) => false,
+                );
+              }),
+            ] else if (widget.userType == 'Family Member' ||
+                widget.userType == 'Nutritionist') ...[
+              _buildDrawerItem(Icons.message, 'Messages', onTap: () {
+                _navigateToPage(
+                    context, MessagesPage(userType: widget.userType));
+              }),
+              _buildDrawerItem(Icons.settings, 'Settings'),
+              _buildDrawerItem(Icons.logout, 'Logout', onTap: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginRegister()),
+                  (Route<dynamic> route) => false,
+                );
+              }),
+            ] else ...[
+              // Handle unknown userType
+              _buildDrawerItem(Icons.error, 'Unknown Role', onTap: () {
+                // Optionally log out or show an alert
+              }),
+            ],
           ],
         ),
       ),

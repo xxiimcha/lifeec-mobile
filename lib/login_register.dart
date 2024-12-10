@@ -127,18 +127,23 @@ Future<void> signIn(String email, String password) async {
       await prefs.setString('name', data['name'] ?? '');
 
       // Check user type and navigate accordingly
-      if (data['userType'] == 'Family Member') {
+      if (data['userType'] == 'Family Member' || data['userType'] == 'Nutritionist') {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MessagesPage(userType: "Family Member"),
+            builder: (context) => NurseDashboardApp(userType: data['userType']), // Dynamically pass the userType
+          ),
+        );
+      } else if (data['userType'] == 'Nurse') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const NurseDashboardApp(userType: "Nurse"),
           ),
         );
       } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const NurseDashboardApp()),
-        );
+        // Handle other userTypes or show an error
+        print('Unknown userType: ${data['userType']}');
       }
     } else {
       if (kDebugMode) {
@@ -177,7 +182,7 @@ Future<void> signIn(String email, String password) async {
         }
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const NurseDashboardApp()),
+          MaterialPageRoute(builder: (context) => const NurseDashboardApp(userType: "Nurse",)),
         );
       } else {
         if (kDebugMode) {
