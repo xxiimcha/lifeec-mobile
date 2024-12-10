@@ -10,7 +10,7 @@ const uploadInfo = async (req, res) => {
             emergencyContactName,
             emergencyContactPhone,
         } = req.body;
-
+        //comment
         // Check if all required fields are present
         if (!name || !age || !gender || !contact || !emergencyContactName || !emergencyContactPhone) {
             return res.status(400).json({ message: "All fields are required" });
