@@ -21,50 +21,68 @@ class FamilyChatPageState extends State<FamilyChatPage> {
   final List<Message> _messages = [];
   final ImagePicker _picker = ImagePicker();
 
-  late final String baseUrl;
-  late final Uri apiUrl;
-  String? _senderId; // To store the logged-in user's ID
+  String? _loggedInUserId; // To store the logged-in user's ID
+  String? _msgId; // Receiver's ID
 
   @override
   void initState() {
     super.initState();
-    _initializeChat(); // Combine loading sender ID and fetching messages
-
-  _verifyMsgId(); // Check if 'msg_id' is correctly stored
-  }
-
-  Future<void> _verifyMsgId() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final msgId = prefs.getString('msg_id');
-    print('Retrieved msg_id from SharedPreferences: $msgId');
+    _initializeChat(); // Load user IDs and fetch messages
   }
 
   Future<void> _initializeChat() async {
-    await _loadSenderId(); // Wait for the sender ID to load
-    if (_senderId != null) {
-      await _fetchMessages(); // Only fetch messages if the sender ID is loaded
-    } else {
-      print('Sender ID is not loaded yet');
+    await _loadUserIds(); // Load both logged-in user ID and msg_id
+    _verifyMsgId(); // Verify if msg_id matches the selected user ID
+    if (_loggedInUserId != null && _msgId != null) {
+      await _fetchMessages(); // Fetch messages only if both IDs are available
     }
   }
 
-  Future<void> _loadSenderId() async {
+  Future<void> _loadUserIds() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _senderId = prefs.getString('msg_id'); // Retrieve the logged-in user's ID
+      _loggedInUserId = prefs.getString('userId'); // Use the correct key
+      _msgId = prefs.getString('msg_id'); // Receiver's ID
     });
+
+    if (_loggedInUserId == null) {
+      print('Error: Logged-in user ID not found in SharedPreferences.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Could not retrieve logged-in user ID')),
+      );
+    } else {
+      print('Logged-in user ID loaded: $_loggedInUserId');
+    }
+
+    if (_msgId == null) {
+      print('Error: msg_id not found in SharedPreferences.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Could not retrieve msg_id')),
+      );
+    } else {
+      print('msg_id loaded: $_msgId');
+    }
+  }
+
+  Future<void> _verifyMsgId() async {
+    if (_msgId != widget.id) {
+      print('Warning: msg_id ($_msgId) does not match receiver ID (${widget.id}).');
+    }
   }
 
   Future<void> _fetchMessages() async {
-    if (_senderId == null) {
-      print('Sender ID is not loaded yet.');
+    if (_loggedInUserId == null || _msgId == null) {
+      print('Error: User IDs are not loaded yet.');
       return;
     }
 
     try {
-      // Construct URL with query parameters
-      final url = Uri.parse('http://localhost:5000/api/messages/between-users?senderId=$_senderId&receiverId=${widget.id}');
-      
+      final url = Uri.parse(
+        'http://localhost:5000/api/messages/between-users?senderId=$_loggedInUserId&receiverId=$_msgId',
+      );
+
+      print('Fetching messages between sender ($_loggedInUserId) and receiver ($_msgId)');
+
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -74,193 +92,72 @@ class FamilyChatPageState extends State<FamilyChatPage> {
           _messages.addAll(jsonResponse.map((msg) {
             return Message(
               content: msg['text'],
-              isAdmin: msg['senderId'] == _senderId,
+              isAdmin: msg['senderId'] == _loggedInUserId,
             );
           }).toList());
         });
       } else {
-        throw Exception('Failed to load messages');
+        throw Exception('Failed to load messages: ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error fetching messages: $e')),
       );
     }
   }
 
   Future<void> _sendMessage() async {
-  if (_messageController.text.isNotEmpty && _senderId != null) {
-    try {
-      final messageData = {
-        'senderId': _senderId, // Logged-in user's ID
-        'receiverId': widget.id, // Receiver's ID passed from MessagesPage
-        'text': _messageController.text,
-        'time': DateTime.now().toIso8601String(),
-        'isRead': false, // Initial read status as false
-      };
+    if (_messageController.text.isNotEmpty && _loggedInUserId != null) {
+      try {
+        final messageData = {
+          'senderId': _loggedInUserId, // Logged-in user's ID
+          'receiverId': _msgId, // Receiver's ID
+          'text': _messageController.text,
+          'time': DateTime.now().toIso8601String(),
+          'isRead': false, // Initial read status as false
+        };
 
-      // Log the message data being sent
-      print('Sending message: $messageData');
+        print('Sending message: $messageData');
 
-      final response = await http.post(
-        apiUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(messageData),
-      );
-
-      // Log the server's response
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 201) {
-        // Successfully sent; update UI
-        final newMessage = Message(
-          content: _messageController.text,
-          isAdmin: true,
+        final url = Uri.parse('http://localhost:5000/api/messages');
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(messageData),
         );
-        setState(() {
-          _messages.add(newMessage);
-        });
-        _messageController.clear(); // Clear input field
-        print('Message sent successfully!');
-      } else {
-        throw Exception('Failed to send message: ${response.body}');
+
+        if (response.statusCode == 201) {
+          setState(() {
+            _messages.add(Message(
+              content: _messageController.text,
+              isAdmin: true,
+            ));
+          });
+          _messageController.clear();
+          print('Message sent successfully!');
+        } else {
+          throw Exception('Failed to send message: ${response.body}');
+        }
+      } catch (e) {
+        print('Error sending message: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
-    } catch (e) {
-      // Log the error
-      print('Error sending message: $e');
+    } else {
+      print('Error: Sender ID is null or message is empty.');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        const SnackBar(content: Text('Error: Sender ID is null or message is empty')),
       );
     }
-  } else {
-    // Log if senderId is unavailable or message is empty
-    print('Sender ID is not available or message is empty');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sender ID is not available')),
-    );
-  }
-}
-
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      // Handle image upload to the backend here if needed
-      setState(() {
-        _messages.add(Message(content: 'Image: ${pickedFile.path}', isAdmin: true));
-      });
-    }
-  }
-
-  Future<void> _attachFile() async {
-    final result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      final file = result.files.single;
-      setState(() {
-        _messages.add(Message(content: 'File: ${file.name}', isAdmin: true));
-      });
-    }
-  }
-
-  void _makeCall() {
-    // Add your call functionality here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Calling...')),
-    );
-  }
-
-  void _showMoreOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Wrap(
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('Info'),
-              onTap: () {
-                Navigator.pop(context);
-                // Add your info functionality here
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                // Add your settings functionality here
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.lightBlueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(40),
-              bottomRight: Radius.circular(40),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                offset: Offset(0, 4),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leadingWidth: 100,
-            leading: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                const SizedBox(width: 8),
-                const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 20,
-                  child: Icon(Icons.person, color: Colors.blueAccent),
-                ),
-              ],
-            ),
-            title: Text(
-              widget.name,
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.call, color: Colors.white),
-                onPressed: _makeCall,
-              ),
-              IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                onPressed: _showMoreOptions,
-              ),
-            ],
-          ),
-        ),
+      appBar: AppBar(
+        title: Text(widget.name, style: GoogleFonts.playfairDisplay(fontSize: 20)),
+        backgroundColor: Colors.blueAccent,
       ),
       body: Column(
         children: [
@@ -286,9 +183,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
                       margin: const EdgeInsets.symmetric(vertical: 5),
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: message.isAdmin
-                            ? Colors.blueAccent
-                            : Colors.grey.shade300,
+                        color: message.isAdmin ? Colors.blueAccent : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -298,13 +193,6 @@ class FamilyChatPageState extends State<FamilyChatPage> {
                         ),
                       ),
                     ),
-                    if (message.isAdmin) const SizedBox(width: 10),
-                    if (message.isAdmin)
-                      const CircleAvatar(
-                        backgroundColor: Colors.blueAccent,
-                        radius: 20,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
                   ],
                 );
               },
@@ -314,14 +202,6 @@ class FamilyChatPageState extends State<FamilyChatPage> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Colors.blueAccent),
-                  onPressed: _pickImage,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.attach_file, color: Colors.blueAccent),
-                  onPressed: _attachFile,
-                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -331,7 +211,6 @@ class FamilyChatPageState extends State<FamilyChatPage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
                 IconButton(
                   icon: const Icon(Icons.send, color: Colors.blueAccent),
                   onPressed: _sendMessage,

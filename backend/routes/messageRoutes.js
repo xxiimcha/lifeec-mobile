@@ -5,6 +5,6 @@ const messageController = require('../controllers/messageController');
 // Define routes for messages
 router.get('/', messageController.getAllMessages);
 router.post('/', messageController.createMessage);
-router.get('/messages/between-users', messageController.getMessagesByUsers);
+router.get('/between-users', messageController.getMessagesByUsers);
 
 module.exports = router;
