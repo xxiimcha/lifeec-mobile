@@ -38,7 +38,7 @@ class LoginRegisterState extends State<LoginRegister>
   late Animation<double> _buttonAnimation;
 
   // Load API URL from .env
-  final String baseUrl = 'http://localhost:5000/api/auth';
+  final String baseUrl = 'https://lifeec-mobile.onrender.com/api/auth';
 
   @override
   void initState() {
@@ -98,7 +98,7 @@ class LoginRegisterState extends State<LoginRegister>
 Future<void> signIn(String email, String password) async {
   try {
     final response = await http.post(
-      Uri.parse('http://localhost:5000/api/auth/signin'),
+      Uri.parse('https://lifeec-mobile.onrender.com/api/auth/signin'),
       headers: {
         'Content-Type': 'application/json',
       },
