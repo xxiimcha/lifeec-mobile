@@ -338,28 +338,6 @@ Future<void> signIn(String email, String password) async {
                               ),
                             ),
                           ),
-                        const SizedBox(height: 30),
-                        const Text(
-                          'Or sign in with',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 20),
-                        Center(
-                          child: ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(FontAwesomeIcons.google,
-                                color: Colors.redAccent),
-                            label: const Text('Google'),
-                            style: ElevatedButton.styleFrom(
-                              foregroundColor: Colors.blueAccent,
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

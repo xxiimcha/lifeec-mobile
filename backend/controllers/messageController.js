@@ -53,7 +53,39 @@ const createMessage = async (req, res) => {
   }
 };
 
+// Fetch messages between two users
+const getMessagesByUsers = async (req, res) => {
+  try {
+    const { senderId, receiverId } = req.query;
+
+    // Validate query parameters
+    if (!senderId || !receiverId) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: {
+          senderId: !senderId ? "Sender ID is required" : undefined,
+          receiverId: !receiverId ? "Receiver ID is required" : undefined,
+        },
+      });
+    }
+
+    // Fetch messages where senderId and receiverId match either direction
+    const messages = await Message.find({
+      $or: [
+        { senderId, receiverId }, // Sender to receiver
+        { senderId: receiverId, receiverId: senderId }, // Receiver to sender
+      ],
+    }).sort({ time: 1 }); // Sort by time in ascending order
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ message: 'Error fetching messages', error });
+  }
+};
+
 module.exports = {
   getAllMessages,
   createMessage,
+  getMessagesByUsers,
 };

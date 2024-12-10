@@ -28,31 +28,53 @@ class FamilyChatPageState extends State<FamilyChatPage> {
   @override
   void initState() {
     super.initState();
-    baseUrl = 'http://localhost:5000';
-    apiUrl = Uri.parse('$baseUrl/api/messages');
-    _loadSenderId();
-    _fetchMessages(); // Fetch existing messages on init
+    _initializeChat(); // Combine loading sender ID and fetching messages
+
+  _verifyMsgId(); // Check if 'msg_id' is correctly stored
+  }
+
+  Future<void> _verifyMsgId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final msgId = prefs.getString('msg_id');
+    print('Retrieved msg_id from SharedPreferences: $msgId');
+  }
+
+  Future<void> _initializeChat() async {
+    await _loadSenderId(); // Wait for the sender ID to load
+    if (_senderId != null) {
+      await _fetchMessages(); // Only fetch messages if the sender ID is loaded
+    } else {
+      print('Sender ID is not loaded yet');
+    }
   }
 
   Future<void> _loadSenderId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _senderId = prefs.getString('userId'); // Retrieve the logged-in user's ID
+      _senderId = prefs.getString('msg_id'); // Retrieve the logged-in user's ID
     });
   }
 
   Future<void> _fetchMessages() async {
+    if (_senderId == null) {
+      print('Sender ID is not loaded yet.');
+      return;
+    }
+
     try {
-      final response = await http.get(apiUrl);
+      // Construct URL with query parameters
+      final url = Uri.parse('http://localhost:5000/api/messages/between-users?senderId=$_senderId&receiverId=${widget.id}');
+      
+      final response = await http.get(url);
 
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         setState(() {
-          _messages.clear(); // Clear current messages
+          _messages.clear();
           _messages.addAll(jsonResponse.map((msg) {
             return Message(
               content: msg['text'],
-              isAdmin: msg['senderId'] == _senderId, // Check if the message is sent by the logged-in user
+              isAdmin: msg['senderId'] == _senderId,
             );
           }).toList());
         });

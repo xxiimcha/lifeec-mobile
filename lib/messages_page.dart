@@ -182,10 +182,14 @@ class MessagesPageState extends State<MessagesPage> {
         child: Icon(icon, color: Colors.white),
       ),
       title: Text(name, style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.w800)),
-      onTap: () {
-        // Print the selected user's ID to the terminal
-        print('Selected user ID: $id');
-        
+      onTap: () async {
+        // Save the selected user's ID as 'msg_id' in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('msg_id', id);
+
+        // Print confirmation
+        print('Selected user ID saved as msg_id: $id');
+
         // Navigate to FamilyChatPage with the selected user's ID and name
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -198,4 +202,5 @@ class MessagesPageState extends State<MessagesPage> {
       },
     );
   }
+
 }
