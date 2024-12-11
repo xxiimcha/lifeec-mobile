@@ -4,11 +4,11 @@ const mongoose = require('mongoose');
 const messageSchema = new mongoose.Schema(
   {
     senderId: {
-      type: String, // Changed from Schema.Types.ObjectId to String
+      type: mongoose.Schema.Types.ObjectId, // Use ObjectId for senderId
       required: true,
     },
     receiverId: {
-      type: String, // Changed from Schema.Types.ObjectId to String
+      type: mongoose.Schema.Types.ObjectId, // Use ObjectId for receiverId
       required: true,
     },
     text: {
@@ -17,11 +17,11 @@ const messageSchema = new mongoose.Schema(
     },
     time: {
       type: Date,
-      default: Date.now, // Automatically set to current date and time
+      default: Date.now, // Automatically set to the current date and time
     },
     isRead: {
       type: Boolean,
-      default: false, // Optional: flag to track if the message has been read
+      default: false, // Tracks if the message has been read
     },
   },
   { timestamps: true } // Adds createdAt and updatedAt fields automatically

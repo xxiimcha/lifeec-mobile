@@ -5,17 +5,27 @@ const getUsers = async (req, res) => {
   const { userType } = req.query; // Assume userType is passed as a query parameter
 
   try {
-    // Fetch users based on userType if specified
-    let users;
+    // Initialize query condition
+    let condition = {};
+
+    // Add specific conditions based on userType
     if (userType === 'Family Member') {
-      users = await User.find({ userType: 'Nurse' });
+      condition = { userType: { $in: ['Nurse', 'Admin'] } };
     } else if (userType === 'Nurse') {
-      users = await User.find({ userType: { $in: ['Family Member', 'Nutritionist'] } });
+      condition = { userType: { $in: ['Family Member', 'Nutritionist', 'Admin'] } };
     } else if (userType === 'Nutritionist') {
-      users = await User.find({ userType: 'Nurse' });
+      condition = { userType: { $in: ['Nurse', 'Admin'] } };
     } else {
-      users = await User.find(); // If no filter, fetch all users
+      condition = { userType: { $in: ['Admin'] } }; // Fallback for unspecified userType
     }
+
+    // Fetch users matching the condition
+    const users = await User.find({
+      $or: [
+        condition,
+        { userType: 'Admin' } // Ensure Admin users are always included
+      ],
+    });
 
     res.status(200).json(users);
   } catch (error) {

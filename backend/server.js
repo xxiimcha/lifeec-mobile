@@ -10,6 +10,7 @@ const mealRouter = require("./routes/meal");
 const contactRoutes = require('./routes/contactRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const userRoutes = require('./routes/userRoutes');
+const notifRoutes = require('./routes/notifRoutes');
 
 require('dotenv').config();
 
@@ -35,6 +36,7 @@ app.use("/api/v1/meal", mealRouter);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notifRoutes);
 
 // Start the server
 app.listen(PORT, () => {
