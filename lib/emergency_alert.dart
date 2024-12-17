@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'resident_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class EmergencyAlertPage extends StatefulWidget {
   const EmergencyAlertPage({super.key});
@@ -53,7 +55,7 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
     _controller.forward();
   }
 
-  void _sendEmergencyAlert() {
+  void _sendEmergencyAlert() async {
     if (_selectedResident == null) {
       showDialog(
         context: context,
@@ -71,28 +73,53 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
       return;
     }
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Emergency Alert'),
-        content: Text('Emergency alert has been sent for $_selectedResident!'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+    final alertData = {
+      "residentName": _selectedResident,
+      "message": "Emergency alert triggered for $_selectedResident",
+      "timestamp": DateTime.now().toUtc().toIso8601String(),
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://your-backend-api.com/emergencyalerts'),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(alertData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Success'),
+            content: Text('Emergency alert has been sent for $_selectedResident!'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-
-    final provider = Provider.of<ResidentProvider>(context, listen: false);
-    provider.sendEmergencyAlert(_selectedResident!);
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (kDebugMode) {
-        print('Emergency alert sent for $_selectedResident!');
+        );
+      } else {
+        throw Exception('Failed to send emergency alert');
       }
-    });
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to send alert: $e'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _showConfirmationDialog() {
