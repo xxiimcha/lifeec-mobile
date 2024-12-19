@@ -9,6 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'nurse_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'messages_page.dart';
+import 'forgot_password.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -29,7 +30,7 @@ class LoginState extends State<Login> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _buttonAnimation;
 
-  final String baseUrl = 'https://lifeec-mobile.onrender.com/api/auth';
+  final String baseUrl = 'http://localhost:5000/api/auth';
 
   @override
   void initState() {
@@ -69,69 +70,82 @@ class LoginState extends State<Login> with SingleTickerProviderStateMixin {
     }
   }
 
-  Future<void> signIn(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/signin'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      );
+Future<void> signIn(String email, String password) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/signin'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+      }),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
 
-        if (kDebugMode) {
-          print('Login successful: $data');
-          print('User Type: ${data['userType']}');
-          print('Login response data: $data');
-          print('User Name: ${data['name']}');
-        }
-
-        // Save user data to SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userId', data['id']);
-        await prefs.setString('token', data['token'] ?? '');
-        await prefs.setString('userType', data['userType'] ?? '');
-        await prefs.setString('email', email);
-        await prefs.setString('name', data['name'] ?? '');
-
-        // Check user type and navigate accordingly
-        if (data['userType'] == 'Family Member' || data['userType'] == 'Nutritionist') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NurseDashboardApp(userType: data['userType']),
-            ),
-          );
-        } else if (data['userType'] == 'Nurse') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const NurseDashboardApp(userType: "Nurse"),
-            ),
-          );
-        } else {
-          print('Unknown userType: ${data['userType']}');
-        }
-      } else {
-        if (kDebugMode) {
-          print('Login failed: ${response.body}');
-        }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Login failed: ${response.body}'),
-        ));
-      }
-    } catch (error) {
       if (kDebugMode) {
-        print('Error during login: $error');
+        print('Login successful: $data');
+        print('User Type: ${data['userType']}');
+        print('Login response data: $data');
+        print('User Name: ${data['name']}');
       }
+
+      // Save user data to SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', data['id']);
+      await prefs.setString('token', data['token'] ?? '');
+      await prefs.setString('userType', data['userType'] ?? '');
+      await prefs.setString('email', email);
+      await prefs.setString('name', data['name'] ?? '');
+
+      // Store residentId if the userType is 'Family Member'
+      if (data['userType'] == 'Family Member' && data['residentId'] != null) {
+        await prefs.setString('residentId', data['residentId']);
+        // Add debug log to confirm residentId is stored
+        final storedResidentId = prefs.getString('residentId');
+        print('[DEBUG] Resident ID stored: $storedResidentId');
+      } else {
+        print('[DEBUG] Resident ID not applicable for this user type.');
+      }
+
+      // Navigate to appropriate dashboard based on userType
+      if (data['userType'] == 'Family Member' || data['userType'] == 'Nutritionist') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NurseDashboardApp(userType: data['userType']),
+          ),
+        );
+      } else if (data['userType'] == 'Nurse') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const NurseDashboardApp(userType: "Nurse"),
+          ),
+        );
+      } else {
+        print('Unknown userType: ${data['userType']}');
+      }
+    } else {
+      if (kDebugMode) {
+        print('Login failed: ${response.body}');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Login failed: ${response.body}'),
+      ));
     }
+  } catch (error) {
+    if (kDebugMode) {
+      print('Error during login: $error');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('An error occurred during login'),
+    ));
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +236,14 @@ class LoginState extends State<Login> with SingleTickerProviderStateMixin {
                         ),
                         const SizedBox(height: 20),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPassword(),
+                              ),
+                            );
+                          },
                           child: const Text(
                             'Forgot Password?',
                             textAlign: TextAlign.center,

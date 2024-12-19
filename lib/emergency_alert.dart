@@ -13,11 +13,13 @@ class EmergencyAlertPage extends StatefulWidget {
   EmergencyAlertPageState createState() => EmergencyAlertPageState();
 }
 
-class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTickerProviderStateMixin {
+class EmergencyAlertPageState extends State<EmergencyAlertPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _bounceAnimation;
   String? _selectedResident;
+  List<Map<String, String>> _residents = [];
 
   @override
   void initState() {
@@ -39,20 +41,37 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
         .animate(_controller);
 
     _controller.forward();
+
+    _fetchResidents();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  Future<void> _fetchResidents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:5000/api/patient/list'),
+      );
 
-  void _onTapDown(TapDownDetails details) {
-    _controller.reverse();
-  }
-
-  void _onTapUp(TapUpDetails details) {
-    _controller.forward();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          _residents = data.map<Map<String, String>>((resident) {
+            return {
+              "id": resident["_id"].toString(),
+              "name": resident["name"].toString(),
+            };
+          }).toList();
+        });
+        if (kDebugMode) {
+          print('Residents fetched: $_residents');
+        }
+      } else {
+        throw Exception('Failed to load residents');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching residents: $e');
+      }
+    }
   }
 
   void _sendEmergencyAlert() async {
@@ -73,15 +92,19 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
       return;
     }
 
+    final selectedResident = _residents
+        .firstWhere((resident) => resident['name'] == _selectedResident);
+
     final alertData = {
-      "residentName": _selectedResident,
-      "message": "Emergency alert triggered for $_selectedResident",
+      "residentId": selectedResident['id'],
+      "residentName": selectedResident['name'],
+      "message": "Emergency alert triggered for ${selectedResident['name']}",
       "timestamp": DateTime.now().toUtc().toIso8601String(),
     };
 
     try {
       final response = await http.post(
-        Uri.parse('https://your-backend-api.com/emergencyalerts'),
+        Uri.parse('http://localhost:5000/api/emergency-alerts'),
         headers: {
           "Content-Type": "application/json",
         },
@@ -93,7 +116,8 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Success'),
-            content: Text('Emergency alert has been sent for $_selectedResident!'),
+            content: Text(
+                'Emergency alert has been sent for ${selectedResident['name']}!'),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -157,51 +181,19 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
     );
   }
 
+  void _onTapDown(TapDownDetails details) {
+      _controller.reverse();
+    }
+
+    void _onTapUp(TapUpDetails details) {
+      _controller.forward();
+    }
+
   @override
   Widget build(BuildContext context) {
-    final residents = Provider.of<ResidentProvider>(context).residents;
-
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.lightBlueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(40),
-              bottomRight: Radius.circular(40),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                offset: Offset(0, 4),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            title: Text(
-              'Emergency Alert',
-              style: GoogleFonts.playfairDisplay(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+      appBar: AppBar(
+        title: const Text('Emergency Alert'),
       ),
       body: Center(
         child: Padding(
@@ -221,57 +213,35 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
                 ),
               ),
               const SizedBox(height: 20),
-             DropdownButtonFormField<String>(
-  value: _selectedResident,
-  hint: const Text('Select Resident'),
-  decoration: InputDecoration(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10.0),
-    ),
-  ),
-  items: residents.isNotEmpty
-      ? residents.map((resident) {
-          return DropdownMenuItem<String>(
-            value: resident.name,
-            child: Text(
-              resident.name,
-              style: GoogleFonts.lato(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+              DropdownButtonFormField<String>(
+                value: _selectedResident,
+                hint: const Text('Select Resident'),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                items: _residents.map((resident) {
+                  return DropdownMenuItem<String>(
+                    value: resident['name'],
+                    child: Text(
+                      resident['name']!,
+                      style: GoogleFonts.lato(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedResident = newValue;
+                  });
+                },
               ),
-            ),
-          );
-        }).toList()
-      : [
-          DropdownMenuItem<String>(
-            value: null,
-            child: Text(
-              'No residents available',
-              style: GoogleFonts.lato(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ],
-  onChanged: residents.isNotEmpty
-      ? (String? newValue) {
-          setState(() {
-            _selectedResident = newValue;
-          });
-        }
-      : null,
-  dropdownColor: Colors.white,
-  icon: residents.isNotEmpty
-      ? const Icon(Icons.arrow_drop_down, color: Colors.blueAccent)
-      : null,
-  iconSize: 30,
-),
-
               const SizedBox(height: 40),
               GestureDetector(
                 onTapDown: _onTapDown,
@@ -279,54 +249,24 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage> with SingleTicke
                 onTap: _showConfirmationDialog,
                 child: ScaleTransition(
                   scale: _controller,
-                  child: AnimatedBuilder(
-                    animation: _bounceAnimation,
-                    builder: (context, child) {
-                      return Container(
-                        margin: EdgeInsets.only(bottom: _bounceAnimation.value),
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.red.shade900,
-                              Colors.red.shade600,
-                              Colors.red.shade400,
-                            ],
-                            stops: const [0.3, 0.6, 1],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              offset: Offset(0, 4),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/emergency_icon.png',
-                            width: 100,
-                            height: 100,
-                          ),
-                        ),
-                      );
-                    },
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [Colors.red, Colors.redAccent],
+                      ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 40),
               FadeTransition(
                 opacity: _fadeAnimation,
-                child: Text(
+                child: const Text(
                   'Emergency Button',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
                 ),
               ),
             ],

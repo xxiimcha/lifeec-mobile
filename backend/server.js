@@ -11,7 +11,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const userRoutes = require('./routes/userRoutes');
 const notifRoutes = require('./routes/notifRoutes');
-
+const emergencyAlertRoutes = require('./routes/emergencyAlertRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -37,6 +37,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notifRoutes);
+app.use('/api/emergency-alerts', emergencyAlertRoutes);
 
 // Start the server
 app.listen(PORT, () => {

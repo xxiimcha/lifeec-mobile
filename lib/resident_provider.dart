@@ -19,7 +19,7 @@ class ResidentProvider extends ChangeNotifier {
 
   /// Fetch residents from the API and update the provider's list
   Future<void> fetchResidents() async {
-    final url = Uri.parse('https://lifeec-mobile.onrender.com/api/patient/list'); // Replace with your API endpoint
+    final url = Uri.parse('http://localhost:5000/api/patient/list'); // Replace with your API endpoint
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
