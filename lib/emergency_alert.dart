@@ -1,8 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'resident_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -16,8 +13,6 @@ class EmergencyAlertPage extends StatefulWidget {
 class EmergencyAlertPageState extends State<EmergencyAlertPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _bounceAnimation;
   String? _selectedResident;
   List<Map<String, String>> _residents = [];
 
@@ -27,19 +22,9 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
-      lowerBound: 0.9,
+      lowerBound: 0.95,
       upperBound: 1.0,
     );
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
-
-    _bounceAnimation = Tween<double>(begin: 0.0, end: 25.0)
-        .chain(CurveTween(curve: Curves.elasticInOut))
-        .animate(_controller);
-
     _controller.forward();
 
     _fetchResidents();
@@ -61,34 +46,17 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
             };
           }).toList();
         });
-        if (kDebugMode) {
-          print('Residents fetched: $_residents');
-        }
       } else {
         throw Exception('Failed to load residents');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching residents: $e');
-      }
+      print('Error fetching residents: $e');
     }
   }
 
   void _sendEmergencyAlert() async {
     if (_selectedResident == null) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: const Text('Please select a resident before sending an alert.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      _showAlertDialog('Error', 'Please select a resident before sending an alert.');
       return;
     }
 
@@ -112,69 +80,25 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Success'),
-            content: Text(
-                'Emergency alert has been sent for ${selectedResident['name']}!'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
+        _showAlertDialog('Success', 'Emergency alert has been sent!');
       } else {
         throw Exception('Failed to send emergency alert');
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: Text('Failed to send alert: $e'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      _showAlertDialog('Error', 'Failed to send alert: $e');
     }
   }
 
-  void _showConfirmationDialog() {
+  void _showAlertDialog(String title, String content) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Alert'),
-        content: const Text('Are you sure you want to send an emergency alert?'),
+        title: Text(title),
+        content: Text(content),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Row(
-              children: [
-                Image.asset('assets/images/cancel_icon.png', width: 24),
-                const SizedBox(width: 8),
-                const Text('Cancel'),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _sendEmergencyAlert();
-            },
-            child: Row(
-              children: [
-                Image.asset('assets/images/confirm_icon.png', width: 24),
-                const SizedBox(width: 8),
-                const Text('Send'),
-              ],
-            ),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -182,96 +106,132 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
   }
 
   void _onTapDown(TapDownDetails details) {
-      _controller.reverse();
-    }
+    _controller.reverse();
+  }
 
-    void _onTapUp(TapUpDetails details) {
-      _controller.forward();
-    }
+  void _onTapUp(TapUpDetails details) {
+    _controller.forward();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Emergency Alert'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'CODE RED',
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: _selectedResident,
-                hint: const Text('Select Resident'),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                items: _residents.map((resident) {
-                  return DropdownMenuItem<String>(
-                    value: resident['name'],
-                    child: Text(
-                      resident['name']!,
-                      style: GoogleFonts.lato(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedResident = newValue;
-                  });
-                },
-              ),
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTapDown: _onTapDown,
-                onTapUp: _onTapUp,
-                onTap: _showConfirmationDialog,
-                child: ScaleTransition(
-                  scale: _controller,
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const RadialGradient(
-                        colors: [Colors.red, Colors.redAccent],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  'Emergency Button',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        backgroundColor: Colors.redAccent,
+        title: Text(
+          'Emergency Alert',
+          style: GoogleFonts.playfairDisplay(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          // Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.redAccent, Colors.white],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  // Resident Selector
+                  DropdownButtonFormField<String>(
+                    value: _selectedResident,
+                    hint: const Text('Select Resident'),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    items: _residents.map((resident) {
+                      return DropdownMenuItem<String>(
+                        value: resident['name'],
+                        child: Text(
+                          resident['name']!,
+                          style: GoogleFonts.lato(
+                            fontSize: 18,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedResident = newValue;
+                      });
+                    },
+                  ),
+                  const Spacer(),
+                  // Emergency Button
+                  GestureDetector(
+                    onTapDown: _onTapDown,
+                    onTapUp: _onTapUp,
+                    onTap: _sendEmergencyAlert,
+                    child: ScaleTransition(
+                      scale: _controller,
+                      child: Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.5),
+                              blurRadius: 15,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                          gradient: const LinearGradient(
+                            colors: [Colors.red, Colors.redAccent],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'ALERT',
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Instruction Text
+                  Text(
+                    'Tap the button to send an alert.',
+                    style: GoogleFonts.lato(
+                      fontSize: 16,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
