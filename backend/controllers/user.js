@@ -95,31 +95,48 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Update profile function
 const updateProfile = async (req, res) => {
-  const { id } = req.params; // Assume the user ID is passed in the URL
-  const { name, email, password } = req.body; // Fields to update
+  const { id } = req.params;
+  const { name, email, password } = req.body;
+
+  console.log('[INFO] Received request to update profile');
+  console.log(`[INFO] User ID: ${id}`);
+  console.log(`[INFO] Update Data:`, { name, email, password: password ? '*****' : null });
 
   try {
-    // Find user by ID
+    // Find the user by ID
     const user = await User.findById(id);
     if (!user) {
+      console.log('[ERROR] User not found');
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update only the provided fields
+    // Log current user data
+    console.log('[INFO] Current User Data:', user);
+
+    // Update fields if provided
     if (name) user.name = name;
     if (email) user.email = email;
-    if (password) user.password = password; // Assume password hashing is handled elsewhere
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      user.password = await bcrypt.hash(password, 10);
+      console.log('[INFO] Password updated');
+    }
 
-    await user.save();
+    // Save the updated user
+    const updatedUser = await user.save();
 
-    res.status(200).json({ message: 'Profile updated successfully', user });
+    // Log updated user data
+    console.log('[INFO] Updated User Data:', updatedUser);
+
+    res.status(200).json({ message: 'Profile updated successfully', user: updatedUser });
   } catch (error) {
-    console.error('Failed to update profile:', error);
-    res.status(500).json({ message: 'Failed to update profile' });
+    console.error('[ERROR] Failed to update profile:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+module.exports = { updateProfile };
 
 module.exports = {
   getUsers,

@@ -13,7 +13,7 @@ set(APPLICATION_ID "com.example.nurse_ui_lifeec")
 # versions of CMake.
 cmake_policy(SET CMP0063 NEW)
 
-# Load bundled libraries from the lib/ directory relative to the binary.
+# Load bundled libraries from the lib/ directory Family Member to the binary.
 set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 
 # Root filesystem for cross-building.
@@ -78,7 +78,7 @@ target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
 # Only the install-generated bundle's copy of the executable will launch
-# correctly, since the resources must in the right relative locations. To avoid
+# correctly, since the resources must in the right Family Member locations. To avoid
 # people trying to run the unbundled copy, put it in a subdirectory instead of
 # the default top-level location.
 set_target_properties(${BINARY_NAME}

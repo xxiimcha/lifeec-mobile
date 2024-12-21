@@ -1,13 +1,27 @@
 const EmergencyAlert = require('../models/emergencyAlertModel');
 const Resident = require('../models/Basicinformation'); // Assuming you have a Resident model
 
-// Fetch emergency alerts by residentId
+// Fetch emergency alerts by residentId and within the last 24 hours
 exports.getEmergencyAlertsByResident = async (req, res) => {
   const { residentId } = req.query;
 
+  if (!residentId) {
+    return res.status(400).json({ message: 'Resident ID is required' });
+  }
+
   try {
     console.log('[INFO] Fetching emergency alerts for resident:', residentId);
-    const alerts = await EmergencyAlert.find({ residentId });
+
+    // Calculate the timestamp for 24 hours ago
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    // Fetch alerts for the resident within the last 24 hours
+    const alerts = await EmergencyAlert.find({
+      residentId,
+      timestamp: { $gte: twentyFourHoursAgo },
+    });
+
     console.log('[INFO] Found emergency alerts:', alerts);
     return res.status(200).json(alerts);
   } catch (error) {
@@ -15,6 +29,7 @@ exports.getEmergencyAlertsByResident = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 // Create a new emergency alert
 exports.createEmergencyAlert = async (req, res) => {

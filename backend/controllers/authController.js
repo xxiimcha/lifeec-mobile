@@ -30,36 +30,55 @@ const sendResetEmail = async (email, token) => {
 exports.signin = async (req, res) => {
   const { email, password } = req.body;
 
+  // Validate input
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
   try {
+    // Find user by email (do not populate residentId)
     const user = await User.findOne({ email });
     if (!user) {
       console.log('User not found');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log('Password mismatch');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, userType: user.userType },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
 
-    console.log('User successfully signed in:', user);
-    res.json({ token, userType: user.userType, name: user.name, id: user._id });
+    // Log successful sign-in
+    console.log('User successfully signed in:', {
+      id: user._id,
+      name: user.name,
+      userType: user.userType,
+      residentId: user.residentId ? user.residentId.toString() : null, // Convert ObjectId to string if present
+    });
+
+    // Send response with user data and token
+    res.json({
+      token,
+      userType: user.userType,
+      name: user.name,
+      id: user._id,
+      residentId: user.residentId ? user.residentId.toString() : null, // Send residentId as a string
+    });
   } catch (error) {
     console.error('Sign in error:', error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Forgot Password
 exports.forgotPassword = async (req, res) => {

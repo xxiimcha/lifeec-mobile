@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'emergency_alert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardContent extends StatefulWidget {
   final Function(BuildContext, Widget) navigateToPage;
@@ -48,7 +49,17 @@ class _DashboardContentState extends State<DashboardContent> {
     });
 
     try {
-      final url = Uri.parse('http://localhost:5000/api/emergency-alerts');
+      // Fetch the residentId from SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? residentId = prefs.getString('residentId');
+
+      if (residentId == null) {
+        debugPrint('Resident ID not found.');
+        throw Exception('Resident ID is required to fetch notifications.');
+      }
+
+      // Add residentId as a query parameter
+      final url = Uri.parse('http://localhost:5000/api/emergency-alerts?residentId=$residentId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -73,6 +84,7 @@ class _DashboardContentState extends State<DashboardContent> {
       });
     }
   }
+
 
   Future<void> _loadDashboardData() async {
     debugPrint('Starting to load dashboard data...');
