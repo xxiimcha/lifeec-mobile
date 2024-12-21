@@ -78,7 +78,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
 
     try {
       final url = Uri.parse(
-        'http://localhost:5000/api/messages/between-users?senderId=$_loggedInUserId&receiverId=$_msgId',
+        'https://lifeec-mobile.onrender.com/api/messages/between-users?senderId=$_loggedInUserId&receiverId=$_msgId',
       );
 
       print('Fetching messages between sender ($_loggedInUserId) and receiver ($_msgId)');
@@ -119,7 +119,7 @@ class FamilyChatPageState extends State<FamilyChatPage> {
 
         print('Sending message: $messageData');
 
-        final url = Uri.parse('http://localhost:5000/api/messages');
+        final url = Uri.parse('https://lifeec-mobile.onrender.com/api/messages');
         final response = await http.post(
           url,
           headers: {'Content-Type': 'application/json'},

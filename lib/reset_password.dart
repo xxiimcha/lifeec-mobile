@@ -18,7 +18,7 @@ class ResetPasswordState extends State<ResetPassword> {
   bool _isLoading = false;
   String _message = '';
 
-  final String baseUrl = 'http://localhost:5000/api/auth';
+  final String baseUrl = 'https://lifeec-mobile.onrender.com/api/auth';
 
   Future<void> _handleResetPassword() async {
     if (!_formKey.currentState!.validate()) return;

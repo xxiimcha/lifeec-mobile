@@ -16,7 +16,7 @@ class ForgotPasswordState extends State<ForgotPassword> {
   bool _isLoading = false;
   String _message = '';
 
-  final String baseUrl = 'http://localhost:5000/api/auth'; // Update with your backend URL
+  final String baseUrl = 'https://lifeec-mobile.onrender.com/api/auth'; // Update with your backend URL
 
   Future<void> _handleForgotPassword() async {
   if (!_formKey.currentState!.validate()) return;
