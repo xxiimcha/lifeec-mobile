@@ -33,7 +33,7 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
   Future<void> _fetchResidents() async {
     try {
       final response = await http.get(
-        Uri.parse('https://lifeec-mobile.onrender.com/api/patient/list'),
+        Uri.parse('http://localhost:5000/api/patient/list'),
       );
 
       if (response.statusCode == 200) {
@@ -72,7 +72,7 @@ class EmergencyAlertPageState extends State<EmergencyAlertPage>
 
     try {
       final response = await http.post(
-        Uri.parse('https://lifeec-mobile.onrender.com/api/emergency-alerts'),
+        Uri.parse('http://localhost:5000/api/emergency-alerts'),
         headers: {
           "Content-Type": "application/json",
         },

@@ -2,6 +2,7 @@ const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto'); // For token generation and hashing
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs'); // For password hashing
 
 const sendResetEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
@@ -36,17 +37,25 @@ exports.signin = async (req, res) => {
   }
 
   try {
-    // Find user by email (do not populate residentId)
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      console.log('User not found');
+      console.log('User not found for email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
+    // Log the hashed password stored in the database
+    console.log('Hashed password stored in database:', user.password);
+
+    // Compare entered password with stored hash
     const isMatch = await user.comparePassword(password);
+
+    // Log comparison result
+    console.log('Password provided by user:', password);
+    console.log('Result of bcrypt.compare():', isMatch);
+
     if (!isMatch) {
-      console.log('Password mismatch');
+      console.log('Password mismatch for user:', user.email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -62,20 +71,20 @@ exports.signin = async (req, res) => {
       id: user._id,
       name: user.name,
       userType: user.userType,
-      residentId: user.residentId ? user.residentId.toString() : null, // Convert ObjectId to string if present
+      residentId: user.residentId ? user.residentId.toString() : null,
     });
 
     // Send response with user data and token
-    res.json({
+    res.status(200).json({
       token,
       userType: user.userType,
       name: user.name,
       id: user._id,
-      residentId: user.residentId ? user.residentId.toString() : null, // Send residentId as a string
+      residentId: user.residentId ? user.residentId.toString() : null,
     });
   } catch (error) {
     console.error('Sign in error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An error occurred while processing your request' });
   }
 };
 

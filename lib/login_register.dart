@@ -30,7 +30,7 @@ class LoginState extends State<Login> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _buttonAnimation;
 
-  final String baseUrl = 'https://lifeec-mobile.onrender.com/api/auth';
+  final String baseUrl = 'http://localhost:5000/api/auth';
 
   @override
   void initState() {
